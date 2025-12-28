@@ -54,7 +54,10 @@ export default function CalendarHelper({ items, onDateClick, onRangeSelect, onEv
                     const calendarItem = arg.event.extendedProps.calendarItem as CalendarItem | undefined;
                     if (calendarItem) onEventClick?.(calendarItem);
                 }}
-                height="100%"
+                expandRows
+                height="auto"
+                contentHeight="auto"
+                handleWindowResize
                 editable={false}
                 selectable
                 selectMirror
