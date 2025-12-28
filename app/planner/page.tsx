@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
-import { Plus, X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { api, PlanEvent, Project, Todo } from "../lib/api";
 import CalendarHelper, { CalendarItem } from "../components/CalendarHelper";
@@ -32,6 +32,8 @@ function PlannerContent() {
     const [projectColor, setProjectColor] = useState(COLOR_PRESETS[0]);
     const [projectStart, setProjectStart] = useState(todayString());
     const [projectEnd, setProjectEnd] = useState(todayString());
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<PlanEvent | null>(null);
 
     const selectedProjectId = useMemo(() => {
         const param = searchParams.get("project");
@@ -172,15 +174,32 @@ function PlannerContent() {
         return [...projectEntries, ...todoEntries];
     }, [events, todos, projects, activeFilter, selectedProjectId]);
 
-    const handleCalendarEventClick = async (item: CalendarItem) => {
+    const handleCalendarEventClick = (item: CalendarItem) => {
         if (item.type === "project") {
             const event = item.data as PlanEvent;
-            if (confirm(`Delete "${event.title}" from the calendar?`)) {
-                await api.events.delete(event.id);
-                await fetchEvents();
-            }
+            setDeleteTarget(event);
+            setIsDeleteModalOpen(true);
         } else {
             alert("오늘 할 일은 Daily 페이지에서 관리해주세요.");
+        }
+    };
+
+    const handleDeleteProject = async () => {
+        if (!deleteTarget) return;
+        try {
+            await Promise.all([
+                api.events.delete(deleteTarget.id),
+                api.projects.delete(deleteTarget.project_id),
+            ]);
+            await fetchEvents();
+            await fetchProjects();
+            setIsDeleteModalOpen(false);
+            setDeleteTarget(null);
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new Event("projects:refresh"));
+            }
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -321,6 +340,41 @@ function PlannerContent() {
                             </div>
                         </form>
                     </aside>
+                )}
+                {isDeleteModalOpen && (
+                    <div className="planner-delete-overlay">
+                        <div className="planner-delete-card">
+                            <h4>프로젝트 삭제</h4>
+                            <p className="text-sm text-gray-600">
+                                해당 프로젝트를 삭제하면 연결된 모든 일정도 함께 제거됩니다. 계속하시겠습니까?
+                            </p>
+                            {deleteTarget && (
+                                <div className="planner-delete-preview">
+                                    <div className="planner-delete-icon">
+                                        <Trash2 size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold">{deleteTarget.title}</p>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    className="ghost-pill"
+                                    onClick={() => {
+                                        setIsDeleteModalOpen(false);
+                                        setDeleteTarget(null);
+                                    }}
+                                >
+                                    취소
+                                </button>
+                                <button type="button" className="btn bg-red-500 hover:bg-red-600" onClick={handleDeleteProject}>
+                                    삭제
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

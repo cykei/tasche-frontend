@@ -3,6 +3,7 @@
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { useEffect, useRef } from "react";
 import { PlanEvent, Todo } from "../lib/api";
 import "./calendar.css";
 
@@ -19,12 +20,14 @@ export type CalendarItem = {
 
 interface CalendarProps {
     items: CalendarItem[];
+    focusDate?: string | null;
     onDateClick?: (date: Date) => void;
     onRangeSelect?: (start: Date, end: Date) => void;
     onEventClick?: (item: CalendarItem) => void;
 }
 
-export default function CalendarHelper({ items, onDateClick, onRangeSelect, onEventClick }: CalendarProps) {
+export default function CalendarHelper({ items, focusDate, onDateClick, onRangeSelect, onEventClick }: CalendarProps) {
+    const calendarRef = useRef<FullCalendar | null>(null);
     const calendarEvents = items.map((item) => ({
         id: item.id,
         title: item.title,
@@ -36,9 +39,16 @@ export default function CalendarHelper({ items, onDateClick, onRangeSelect, onEv
         extendedProps: { calendarItem: item },
     }));
 
+    useEffect(() => {
+        if (focusDate && calendarRef.current) {
+            calendarRef.current.getApi().gotoDate(focusDate);
+        }
+    }, [focusDate]);
+
     return (
         <div className="calendar-shell">
             <FullCalendar
+                ref={calendarRef}
                 plugins={[dayGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
                 firstDay={1}
