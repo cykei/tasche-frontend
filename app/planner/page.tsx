@@ -1,205 +1,306 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { format } from "date-fns";
-import { Plus, Trash2 } from "lucide-react";
-import { api, Project, PlanEvent } from "../lib/api";
-import Modal from "../components/Modal";
-import CalendarHelper from "../components/CalendarHelper"; // The new FullCalendar wrapper
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { addDays, format } from "date-fns";
+import { Plus, X } from "lucide-react";
+import { api, PlanEvent, Project, Todo } from "../lib/api";
+import CalendarHelper, { CalendarItem } from "../components/CalendarHelper";
+
+const FILTERS = [
+    { key: "all", label: "전체 보기" },
+    { key: "projects", label: "프로젝트" },
+    { key: "todos", label: "오늘 할 일" },
+] as const;
+
+const COLOR_PRESETS = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#F439A0', '#A142F4', '#24C1E0'];
+
+const todayString = () => format(new Date(), "yyyy-MM-dd");
 
 export default function PlannerPage() {
-    // Calendar state is now largely managed by FullCalendar internally for view, 
-    // but we still fetch events based on a broad range or just all events for now.
-
     const [projects, setProjects] = useState<Project[]>([]);
     const [events, setEvents] = useState<PlanEvent[]>([]);
+    const [todos, setTodos] = useState<Todo[]>([]);
 
-    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-    const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+    const [activeFilter, setActiveFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
+    const [showProjectForm, setShowProjectForm] = useState(false);
 
-    // Selected Data for Creation
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-
-    // Forms
-    const [newEventTitle, setNewEventTitle] = useState("");
-    const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-
-    const [newProjectName, setNewProjectName] = useState("");
-    const [newProjectColor, setNewProjectColor] = useState("#4285F4");
+    const [projectName, setProjectName] = useState("");
+    const [projectNote, setProjectNote] = useState("");
+    const [projectColor, setProjectColor] = useState(COLOR_PRESETS[0]);
+    const [projectStart, setProjectStart] = useState(todayString());
+    const [projectEnd, setProjectEnd] = useState(todayString());
 
     const fetchProjects = useCallback(async () => {
         try {
             const data = await api.projects.list();
             setProjects(data);
-            if (data.length > 0) {
-                setSelectedProjectId((prev) => prev ?? data[0].id);
-            }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+        }
     }, []);
 
     const fetchEvents = useCallback(async () => {
-        // For MVP fetching all or a large range. FC handles view.
         try {
             const data = await api.events.list();
             setEvents(data);
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+        }
+    }, []);
+
+    const fetchTodos = useCallback(async () => {
+        try {
+            const data = await api.todos.list();
+            setTodos(data);
+        } catch (e) {
+            console.error(e);
+        }
     }, []);
 
     useEffect(() => {
         const load = async () => {
-            await fetchProjects();
-            await fetchEvents();
+            await Promise.all([fetchProjects(), fetchEvents(), fetchTodos()]);
         };
         void load();
-    }, [fetchProjects, fetchEvents]);
+    }, [fetchProjects, fetchEvents, fetchTodos]);
 
-    const handleCreateEvent = async (e: React.FormEvent) => {
+    const resetProjectForm = () => {
+        setProjectName("");
+        setProjectNote("");
+        setProjectColor(COLOR_PRESETS[0]);
+        const today = todayString();
+        setProjectStart(today);
+        setProjectEnd(today);
+    };
+
+    const handleRangeSelect = (start: Date, end: Date) => {
+        const startStr = format(start, "yyyy-MM-dd");
+        const inclusiveEnd = addDays(end, -1);
+        const safeEnd = inclusiveEnd < start ? start : inclusiveEnd;
+        const endStr = format(safeEnd, "yyyy-MM-dd");
+        setProjectStart(startStr);
+        setProjectEnd(endStr);
+        setShowProjectForm(true);
+    };
+
+    const handleManualStartChange = (value: string) => {
+        setProjectStart(value);
+        if (value > projectEnd) setProjectEnd(value);
+    };
+
+    const handleManualEndChange = (value: string) => {
+        if (value < projectStart) {
+            setProjectEnd(projectStart);
+            return;
+        }
+        setProjectEnd(value);
+    };
+
+    const handleSaveProject = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedDate || !selectedProjectId || !newEventTitle) return;
+        if (!projectName.trim()) return;
         try {
+            const project = await api.projects.create({
+                name: projectName.trim(),
+                color: projectColor,
+                description: projectNote,
+            });
+            setProjects(prev => [...prev, project]);
+
             await api.events.create({
-                project_id: selectedProjectId!,
-                title: newEventTitle,
-                start_at: selectedDate.toISOString(),
-                end_at: selectedDate.toISOString(),
+                project_id: project.id,
+                title: projectName.trim(),
+                start_at: new Date(projectStart).toISOString(),
+                end_at: addDays(new Date(projectEnd), 1).toISOString(),
                 is_all_day: true,
-                note: ""
+                note: projectNote,
             });
-            setIsEventModalOpen(false);
-            setNewEventTitle("");
-            fetchEvents();
-        } catch (e) { console.error(e); }
+            await fetchEvents();
+            setShowProjectForm(false);
+            resetProjectForm();
+        } catch (error) {
+            console.error(error);
+        }
     };
 
-    const handleCreateProject = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newProjectName) return;
-        try {
-            const p = await api.projects.create({
-                name: newProjectName,
-                color: newProjectColor,
-                description: ""
-            });
-            setProjects([...projects, p]);
-            setIsProjectModalOpen(false);
-            setNewProjectName("");
-            if (!selectedProjectId) setSelectedProjectId(p.id);
-        } catch (e) { console.error(e); }
-    };
+    const calendarItems: CalendarItem[] = useMemo(() => {
+        const projectColors = new Map(projects.map(project => [project.id, project.color]));
+        const projectEntries: CalendarItem[] = events.map(event => ({
+            id: `event-${event.id}`,
+            title: event.title,
+            start: event.start_at,
+            end: event.end_at,
+            color: projectColors.get(event.project_id) || "#2563eb",
+            type: "project",
+            allDay: event.is_all_day,
+            data: event,
+        }));
 
-    const handleDeleteProject = async (id: number) => {
-        if (!confirm("Delete this project and all its events?")) return;
-        await api.projects.delete(id);
-        fetchProjects();
-        fetchEvents();
-    }
+        const todoEntries: CalendarItem[] = todos.map(todo => {
+            const startDate = new Date(todo.date);
+            return {
+                id: `todo-${todo.id}`,
+                title: `할 일 · ${todo.title}`,
+                start: startDate.toISOString(),
+                end: addDays(startDate, 1).toISOString(),
+                color: "#f97316",
+                type: "todo",
+                allDay: true,
+                data: todo,
+            };
+        });
 
-    // Handlers for FullCalendar
-    const onDateClick = (date: Date) => {
-        setSelectedDate(date);
-        setIsEventModalOpen(true);
-    };
+        if (activeFilter === "projects") return projectEntries;
+        if (activeFilter === "todos") return todoEntries;
+        return [...projectEntries, ...todoEntries];
+    }, [events, todos, projects, activeFilter]);
 
-    const onEventClick = async (event: PlanEvent) => {
-        if (confirm(`Delete event "${event.title}"?`)) {
-            await api.events.delete(event.id);
-            fetchEvents();
+    const handleCalendarEventClick = async (item: CalendarItem) => {
+        if (item.type === "project") {
+            const event = item.data as PlanEvent;
+            if (confirm(`Delete "${event.title}" from the calendar?`)) {
+                await api.events.delete(event.id);
+                await fetchEvents();
+            }
+        } else {
+            alert("오늘 할 일은 Daily 페이지에서 관리해주세요.");
         }
     };
 
     return (
-        <div className="flex h-full bg-white">
-            {/* Sidebar: Projects */}
-            <aside className="w-60 border-r p-6 flex flex-col gap-6" style={{ borderColor: 'hsl(var(--border))' }}>
-                <div className="flex items-center justify-between">
-                    <h2 className="font-semibold text-gray-700">Projects</h2>
-                    <button onClick={() => setIsProjectModalOpen(true)} className="p-1 hover:bg-gray-100 rounded text-blue-600"><Plus size={20} /></button>
-                </div>
-                <div className="space-y-1 overflow-auto flex-1">
-                    {projects.map(p => (
-                        <div key={p.id} className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 group transition-colors">
-                            <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                            <span className="flex-1 text-sm font-medium text-gray-700 truncate">{p.name}</span>
-                            <button onClick={() => handleDeleteProject(p.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity">
-                                <Trash2 size={14} />
-                            </button>
+        <div className="planner-page">
+            <div className="planner-main">
+                <div className={`planner-calendar-area ${showProjectForm ? "panel-open" : ""}`}>
+                    <div className="planner-calendar-header">
+                        <div>
+                            <h1>월간 캘린더</h1>
+                            <p>프로젝트 일정과 오늘의 할 일을 한 화면에서 확인하세요.</p>
                         </div>
-                    ))}
-                    {projects.length === 0 && <div className="text-xs opacity-50 text-center py-4">No projects yet.</div>}
-                </div>
-            </aside>
-
-            {/* Main: FullCalendar */}
-            <div className="flex-1 p-6 overflow-hidden flex flex-col">
-                <CalendarHelper
-                    events={events}
-                    projects={projects}
-                    onDateClick={onDateClick}
-                    onEventClick={onEventClick}
-                />
-            </div>
-
-            {/* Modals */}
-            <Modal isOpen={isEventModalOpen} onClose={() => setIsEventModalOpen(false)} title="Add Event">
-                <form onSubmit={handleCreateEvent} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Project</label>
-                        <select
-                            className="input h-10 bg-gray-50 border border-gray-200"
-                            value={selectedProjectId || ""}
-                            onChange={e => setSelectedProjectId(Number(e.target.value))}
-                        >
-                            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                        {projects.length === 0 && <p className="text-xs text-red-500 mt-1">Create a project first!</p>}
+                        <div className="planner-filter-group">
+                            {FILTERS.map(filter => (
+                                <button
+                                    key={filter.key}
+                                    className={`planner-filter ${activeFilter === filter.key ? "active" : ""}`}
+                                    onClick={() => setActiveFilter(filter.key)}
+                                    type="button"
+                                >
+                                    {filter.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Title</label>
-                        <input
-                            className="input h-10 bg-gray-50 border border-gray-200"
-                            value={newEventTitle}
-                            onChange={e => setNewEventTitle(e.target.value)}
-                            placeholder="Event name..."
-                            autoFocus
+
+                    <div className="planner-calendar">
+                        <CalendarHelper
+                            items={calendarItems}
+                            onRangeSelect={handleRangeSelect}
+                            onEventClick={handleCalendarEventClick}
                         />
                     </div>
-                    <div className="text-sm text-gray-500">
-                        Date: {selectedDate && format(selectedDate, "PPP")}
-                    </div>
-                    <div className="flex justify-end gap-2 mt-6">
-                        <button type="button" onClick={() => setIsEventModalOpen(false)} className="btn-ghost px-4 py-2 rounded">Cancel</button>
-                        <button type="submit" className="btn" disabled={projects.length === 0}>Create</button>
-                    </div>
-                </form>
-            </Modal>
 
-            <Modal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} title="New Project">
-                <form onSubmit={handleCreateProject} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Name</label>
-                        <input className="input h-10 bg-gray-50 border border-gray-200" value={newProjectName} onChange={e => setNewProjectName(e.target.value)} placeholder="Project name..." autoFocus />
+                    <div className="planner-footer">
+                        <button
+                            className="planner-add-button"
+                            type="button"
+                            onClick={() => {
+                                resetProjectForm();
+                                setShowProjectForm(true);
+                            }}
+                        >
+                            <Plus size={18} />
+                            프로젝트 추가
+                        </button>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Color</label>
-                        <div className="flex gap-2 flex-wrap">
-                            {['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#F439A0', '#A142F4', '#24C1E0'].map(c => (
-                                <button
-                                    key={c}
-                                    type="button"
-                                    onClick={() => setNewProjectColor(c)}
-                                    className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${newProjectColor === c ? 'ring-2 ring-offset-2 ring-gray-400' : ''}`}
-                                    style={{ backgroundColor: c }}
-                                />
-                            ))}
-                            <input type="color" className="w-6 h-6 p-0 border-0 rounded-full overflow-hidden" value={newProjectColor} onChange={e => setNewProjectColor(e.target.value)} />
+                </div>
+
+                {showProjectForm && (
+                    <aside className="planner-form-panel">
+                        <div className="planner-form-head">
+                            <div>
+                                <h3>새 프로젝트</h3>
+                                <p>달력에 표시할 프로젝트 기간을 지정하세요.</p>
+                            </div>
+                            <button className="planner-close" onClick={() => setShowProjectForm(false)} type="button" aria-label="닫기">
+                                <X size={16} />
+                            </button>
                         </div>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-6">
-                        <button type="button" onClick={() => setIsProjectModalOpen(false)} className="btn-ghost px-4 py-2 rounded">Cancel</button>
-                        <button type="submit" className="btn">Create</button>
-                    </div>
-                </form>
-            </Modal>
+
+                        <form className="planner-form" onSubmit={handleSaveProject}>
+                            <label className="planner-field">
+                                <span>프로젝트 이름</span>
+                                <input
+                                    className="input"
+                                    placeholder="예: 신규 캠페인 준비"
+                                    value={projectName}
+                                    onChange={(e) => setProjectName(e.target.value)}
+                                />
+                            </label>
+
+                            <div className="planner-field dual">
+                                <label>
+                                    <span>시작일</span>
+                                    <input
+                                        type="date"
+                                        className="input"
+                                        value={projectStart}
+                                        onChange={(e) => handleManualStartChange(e.target.value)}
+                                    />
+                                </label>
+                                <label>
+                                    <span>종료일</span>
+                                    <input
+                                        type="date"
+                                        className="input"
+                                        value={projectEnd}
+                                        onChange={(e) => handleManualEndChange(e.target.value)}
+                                    />
+                                </label>
+                            </div>
+
+                            <label className="planner-field">
+                                <span>메모</span>
+                                <textarea
+                                    className="planner-textarea"
+                                    rows={3}
+                                    placeholder="세부 설명을 입력하세요."
+                                    value={projectNote}
+                                    onChange={(e) => setProjectNote(e.target.value)}
+                                />
+                            </label>
+
+                            <div className="planner-field">
+                                <span>색상</span>
+                                <div className="planner-color-options">
+                                    {COLOR_PRESETS.map(color => (
+                                        <button
+                                            key={color}
+                                            type="button"
+                                            onClick={() => setProjectColor(color)}
+                                            className={`color-swatch ${projectColor === color ? "selected" : ""}`}
+                                            style={{ backgroundColor: color }}
+                                        />
+                                    ))}
+                                    <input
+                                        type="color"
+                                        className="color-picker-input"
+                                        value={projectColor}
+                                        onChange={(e) => setProjectColor(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="planner-form-actions">
+                                <button type="button" className="ghost-pill" onClick={() => setShowProjectForm(false)}>
+                                    취소
+                                </button>
+                                <button type="submit" className="btn" disabled={!projectName.trim()}>
+                                    프로젝트 저장
+                                </button>
+                            </div>
+                        </form>
+                    </aside>
+                )}
+            </div>
         </div>
     );
 }
