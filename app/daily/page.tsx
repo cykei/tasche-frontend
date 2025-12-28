@@ -32,6 +32,12 @@ export default function DailyPage() {
     const [tagInput, setTagInput] = useState("");
     const [tags, setTags] = useState<string[]>([]);
 
+    const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+    const [editTitle, setEditTitle] = useState("");
+    const [editContent, setEditContent] = useState("");
+    const [editTags, setEditTags] = useState<string[]>([]);
+    const [editTagInput, setEditTagInput] = useState("");
+
     const [isLoading, setIsLoading] = useState(false);
 
     const fetchTodos = useCallback(async () => {
@@ -70,6 +76,21 @@ export default function DailyPage() {
 
     const removeTag = (t: string) => setTags(tags.filter((tag) => tag !== t));
 
+    const handleEditTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" && editTagInput.trim()) {
+            e.preventDefault();
+            const nextTag = editTagInput.trim();
+            if (!editTags.includes(nextTag)) {
+                setEditTags([...editTags, nextTag]);
+            }
+            setEditTagInput("");
+        }
+    };
+
+    const removeEditTag = (tag: string) => {
+        setEditTags(editTags.filter((t) => t !== tag));
+    };
+
     const handleAddTodo = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim()) return;
@@ -95,6 +116,7 @@ export default function DailyPage() {
 
     const toggleTodo = async (todo: Todo) => {
         try {
+            if (editingTodo?.id === todo.id) cancelEditTodo();
             setTodos(todos.map((t) => (t.id === todo.id ? { ...t, is_done: !t.is_done } : t)));
             await api.todos.update(todo.id, { is_done: !todo.is_done });
         } catch {
@@ -106,6 +128,39 @@ export default function DailyPage() {
         if (!confirm("Delete?")) return;
         await api.todos.delete(id);
         setTodos(todos.filter((t) => t.id !== id));
+        if (editingTodo?.id === id) cancelEditTodo();
+    };
+
+    const startEditTodo = (todo: Todo) => {
+        setEditingTodo(todo);
+        setEditTitle(todo.title);
+        setEditContent(todo.content ?? "");
+        setEditTags(todo.tags ?? []);
+        setEditTagInput("");
+    };
+
+    const cancelEditTodo = () => {
+        setEditingTodo(null);
+        setEditTitle("");
+        setEditContent("");
+        setEditTags([]);
+        setEditTagInput("");
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingTodo || !editTitle.trim()) return;
+        try {
+            const updated = await api.todos.update(editingTodo.id, {
+                title: editTitle.trim(),
+                content: editContent,
+                tags: editTags,
+            });
+            setTodos(prev => prev.map(todo => (todo.id === updated.id ? updated : todo)));
+            cancelEditTodo();
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     const activeTodos = todos.filter((t) => !t.is_done);
@@ -206,49 +261,113 @@ export default function DailyPage() {
                             ) : (
                                 activeTodos.map((todo) => {
                                     const createdLabel = formatCreatedAt(todo.created_at);
+                                    const isEditing = editingTodo?.id === todo.id;
                                     return (
-                                        <div key={todo.id} className="todoist-task">
-                                            <button
-                                                type="button"
-                                                className="todoist-checkbox"
-                                                onClick={() => toggleTodo(todo)}
-                                                aria-label="작업 완료 처리"
-                                            >
-                                                <span className="checkbox-ring" />
-                                            </button>
-                                            <div className="todoist-task-body">
-                                                <div className="todoist-task-header">
-                                                    <div>
-                                                        <p className="todoist-task-title">{todo.title}</p>
-                                                        {todo.content && <p className="todoist-task-desc">{todo.content}</p>}
+                                        <div key={todo.id} className={`todoist-task ${isEditing ? "editing" : ""}`}>
+                                            {isEditing ? (
+                                                <form className="todoist-edit-form" onSubmit={handleEditSubmit}>
+                                                    <input
+                                                        className="todoist-input"
+                                                        value={editTitle}
+                                                        onChange={(e) => setEditTitle(e.target.value)}
+                                                        placeholder="작업 이름"
+                                                        autoFocus
+                                                    />
+                                                    <textarea
+                                                        className="todoist-textarea"
+                                                        value={editContent}
+                                                        onChange={(e) => setEditContent(e.target.value)}
+                                                        placeholder="세부 내용을 입력하세요"
+                                                        rows={3}
+                                                    />
+                                                    <div className="tag-input-row">
+                                                        <div className="tag-input-shell">
+                                                            {editTags.map((tag) => (
+                                                                <span key={tag} className="tag-pill">
+                                                                    {tag}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeEditTag(tag)}
+                                                                        aria-label="태그 제거"
+                                                                    >
+                                                                        ×
+                                                                    </button>
+                                                                </span>
+                                                            ))}
+                                                            <div className="tag-inline-input">
+                                                                <Tag size={12} />
+                                                                <input
+                                                                    placeholder="태그 입력 후 Enter"
+                                                                    value={editTagInput}
+                                                                    onChange={(e) => setEditTagInput(e.target.value)}
+                                                                    onKeyDown={handleEditTagKeyDown}
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="todoist-task-actions">
-                                                        <button className="icon-button muted" type="button">
-                                                            <MoreHorizontal size={16} />
-                                                        </button>
+                                                    <div className="todoist-edit-actions">
                                                         <button
-                                                            className="icon-button danger"
                                                             type="button"
-                                                            onClick={() => deleteTodo(todo.id)}
-                                                            aria-label="작업 삭제"
+                                                            className="ghost-pill"
+                                                            onClick={cancelEditTodo}
                                                         >
-                                                            <Trash2 size={16} />
+                                                            취소
+                                                        </button>
+                                                        <button type="submit" className="btn" disabled={!editTitle.trim()}>
+                                                            저장
                                                         </button>
                                                     </div>
-                                                </div>
-                                                <div className="todoist-task-meta">
-                                                    <span className="todoist-due">
-                                                        <Calendar size={12} />
-                                                        {dueLabel}
-                                                    </span>
-                                                    {createdLabel && (
-                                                        <span className="todoist-created">
-                                                            <Clock size={12} />
-                                                            {createdLabel}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
+                                                </form>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        className="todoist-checkbox"
+                                                        onClick={() => toggleTodo(todo)}
+                                                        aria-label="작업 완료 처리"
+                                                    >
+                                                        <span className="checkbox-ring" />
+                                                    </button>
+                                                    <div className="todoist-task-body">
+                                                        <div className="todoist-task-header">
+                                                            <div>
+                                                                <p className="todoist-task-title">{todo.title}</p>
+                                                                {todo.content && <p className="todoist-task-desc">{todo.content}</p>}
+                                                            </div>
+                                                            <div className="todoist-task-actions">
+                                                                <button
+                                                                    className="icon-button muted"
+                                                                    type="button"
+                                                                    onClick={() => startEditTodo(todo)}
+                                                                    aria-label="작업 수정"
+                                                                >
+                                                                    <MoreHorizontal size={16} />
+                                                                </button>
+                                                                <button
+                                                                    className="icon-button danger"
+                                                                    type="button"
+                                                                    onClick={() => deleteTodo(todo.id)}
+                                                                    aria-label="작업 삭제"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div className="todoist-task-meta">
+                                                            <span className="todoist-due">
+                                                                <Calendar size={12} />
+                                                                {dueLabel}
+                                                            </span>
+                                                            {createdLabel && (
+                                                                <span className="todoist-created">
+                                                                    <Clock size={12} />
+                                                                    {createdLabel}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     );
                                 })

@@ -1007,6 +1007,11 @@ h3 {
   box-shadow: 0 10px 18px rgba(20, 20, 43, 0.04);
 }
 
+.todoist-task.editing {
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .todoist-checkbox {
   width: 22px;
   height: 22px;
@@ -1044,6 +1049,19 @@ h3 {
 
 .todoist-task-body {
   flex: 1;
+}
+
+.todoist-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.todoist-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .todoist-task-header {

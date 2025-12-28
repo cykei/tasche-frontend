@@ -8,6 +8,7 @@ export interface Todo {
     date: string;
     created_at: string;
     updated_at: string;
+    tags?: string[];
 }
 
 export interface CreateTodo {
@@ -22,6 +23,7 @@ export interface UpdateTodo {
     content?: string;
     is_done?: boolean;
     date?: string;
+    tags?: string[];
 }
 
 export interface Project {
