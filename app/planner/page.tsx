@@ -15,6 +15,7 @@ const FILTERS = [
 const COLOR_PRESETS = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#F439A0', '#A142F4', '#24C1E0'];
 
 const todayString = () => format(new Date(), "yyyy-MM-dd");
+const toNaiveDateTime = (value: Date) => format(value, "yyyy-MM-dd'T'HH:mm:ss");
 
 export default function PlannerPage() {
     const [projects, setProjects] = useState<Project[]>([]);
@@ -110,8 +111,8 @@ export default function PlannerPage() {
             await api.events.create({
                 project_id: project.id,
                 title: projectName.trim(),
-                start_at: new Date(projectStart).toISOString(),
-                end_at: addDays(new Date(projectEnd), 1).toISOString(),
+                start_at: toNaiveDateTime(new Date(`${projectStart}T00:00:00`)),
+                end_at: toNaiveDateTime(addDays(new Date(`${projectEnd}T00:00:00`), 1)),
                 is_all_day: true,
                 note: projectNote,
             });
