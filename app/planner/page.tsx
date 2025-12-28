@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
 import { Plus, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -18,7 +18,7 @@ const COLOR_PRESETS = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#F439A0', '#
 const todayString = () => format(new Date(), "yyyy-MM-dd");
 const toNaiveDateTime = (value: Date) => format(value, "yyyy-MM-dd'T'HH:mm:ss");
 
-export default function PlannerPage() {
+function PlannerContent() {
     const searchParams = useSearchParams();
     const [projects, setProjects] = useState<Project[]>([]);
     const [events, setEvents] = useState<PlanEvent[]>([]);
@@ -324,5 +324,13 @@ export default function PlannerPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function PlannerPage() {
+    return (
+        <Suspense fallback={<div className="planner-loading">Loading...</div>}>
+            <PlannerContent />
+        </Suspense>
     );
 }
