@@ -43,6 +43,13 @@ function PlannerContent() {
     }, [searchParams]);
 
     const selectedProject = projects.find((project) => project.id === selectedProjectId);
+    const focusDate = useMemo(() => {
+        if (!selectedProjectId) return null;
+        const matchingEvent = events
+            .filter((event) => event.project_id === selectedProjectId)
+            .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())[0];
+        return matchingEvent ? matchingEvent.start_at : null;
+    }, [events, selectedProjectId]);
 
     const fetchProjects = useCallback(async () => {
         try {
@@ -234,6 +241,7 @@ function PlannerContent() {
                     <div className="planner-calendar">
                         <CalendarHelper
                             items={calendarItems}
+                            focusDate={focusDate}
                             onRangeSelect={handleRangeSelect}
                             onEventClick={handleCalendarEventClick}
                         />
