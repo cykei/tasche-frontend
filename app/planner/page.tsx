@@ -240,9 +240,11 @@ function PlannerContent() {
             const event = item.data as PlanEvent;
             setDeleteTarget(event);
             setIsDeleteModalOpen(true);
-        } else {
+        } else if (item.type === "todo") {
             const todo = item.data as Todo;
             openTodoModal(todo);
+        } else {
+            // summary events are informational only
         }
     };
 

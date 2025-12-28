@@ -94,8 +94,8 @@
 .planner-todo-chip {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.4rem;
+    gap: 0.4rem;
+    padding: 0.2rem 0.35rem;
     border-radius: 999px;
     width: 100%;
     transition: background 0.2s ease, box-shadow 0.2s ease;
@@ -106,11 +106,37 @@
     box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.3);
 }
 
+.fc .planner-todo-summary-event {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none;
+    padding: 0 !important;
+}
+
+.fc .planner-todo-summary-event .fc-event-main {
+    padding: 0;
+}
+
+.planner-todo-summary-event {
+    pointer-events: none;
+}
+
+.planner-todo-summary {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #ea580c;
+    padding: 0.1rem 0.35rem;
+}
+
 .planner-todo-checkbox {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border-radius: 999px;
-    border: 1.5px solid rgba(249, 115, 22, 0.4);
+    border: 1.3px solid rgba(249, 115, 22, 0.4);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -142,7 +168,7 @@
 
 .planner-todo-title {
     font-weight: 600;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     color: #c2410c;
     line-height: 1.2;
     flex: 1;
