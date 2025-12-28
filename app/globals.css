@@ -1209,6 +1209,21 @@ h3 {
   color: #374151;
 }
 
+.todoist-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.todoist-tag-chip {
+  background: #fff3e8;
+  color: #c2410c;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.45rem;
+}
+
 .todoist-add-actions {
   display: inline-flex;
   align-items: center;

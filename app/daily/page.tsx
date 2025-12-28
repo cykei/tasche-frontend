@@ -64,27 +64,30 @@ export default function DailyPage() {
         setTagInput("");
     };
 
-    const handleAddTag = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" && tagInput.trim()) {
-            e.preventDefault();
-            if (!tags.includes(tagInput.trim())) {
-                setTags([...tags, tagInput.trim()]);
-            }
-            setTagInput("");
+    const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.nativeEvent.isComposing) return;
+        if (e.key !== "Enter") return;
+        const nextTag = tagInput.trim();
+        if (!nextTag) return;
+        e.preventDefault();
+        if (!tags.includes(nextTag)) {
+            setTags([...tags, nextTag]);
         }
+        setTagInput("");
     };
 
     const removeTag = (t: string) => setTags(tags.filter((tag) => tag !== t));
 
     const handleEditTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter" && editTagInput.trim()) {
-            e.preventDefault();
-            const nextTag = editTagInput.trim();
-            if (!editTags.includes(nextTag)) {
-                setEditTags([...editTags, nextTag]);
-            }
-            setEditTagInput("");
+        if (e.nativeEvent.isComposing) return;
+        if (e.key !== "Enter") return;
+        const nextTag = editTagInput.trim();
+        if (!nextTag) return;
+        e.preventDefault();
+        if (!editTags.includes(nextTag)) {
+            setEditTags([...editTags, nextTag]);
         }
+        setEditTagInput("");
     };
 
     const removeEditTag = (tag: string) => {
@@ -330,10 +333,19 @@ export default function DailyPage() {
                                                     </button>
                                                     <div className="todoist-task-body">
                                                         <div className="todoist-task-header">
-                                                            <div>
-                                                                <p className="todoist-task-title">{todo.title}</p>
-                                                                {todo.content && <p className="todoist-task-desc">{todo.content}</p>}
+                                                    <div>
+                                                        <p className="todoist-task-title">{todo.title}</p>
+                                                        {todo.content && <p className="todoist-task-desc">{todo.content}</p>}
+                                                        {todo.tags && todo.tags.length > 0 && (
+                                                            <div className="todoist-tag-list">
+                                                                {todo.tags.map((tag) => (
+                                                                    <span key={tag} className="todoist-tag-chip">
+                                                                        {tag}
+                                                                    </span>
+                                                                ))}
                                                             </div>
+                                                        )}
+                                                    </div>
                                                             <div className="todoist-task-actions">
                                                                 <button
                                                                     className="icon-button muted"
@@ -457,6 +469,15 @@ export default function DailyPage() {
                                                 <div className="completed-body">
                                                     <p>{todo.title}</p>
                                                     {todo.content && <span>{todo.content}</span>}
+                                                    {todo.tags && todo.tags.length > 0 && (
+                                                        <div className="todoist-tag-list">
+                                                            {todo.tags.map((tag) => (
+                                                                <span key={tag} className="todoist-tag-chip">
+                                                                    {tag}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
