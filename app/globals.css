@@ -437,6 +437,20 @@ h3 {
   gap: 0.5rem;
 }
 
+.todo-modal-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.todo-modal-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: #f97316;
+}
+
 .planner-delete-preview {
   display: flex;
   align-items: center;

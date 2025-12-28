@@ -6,6 +6,7 @@ import { Plus, Trash2, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { api, PlanEvent, Project, Todo } from "../lib/api";
 import CalendarHelper, { CalendarItem } from "../components/CalendarHelper";
+import Modal from "../components/Modal";
 
 const FILTERS = [
     { key: "all", label: "전체 보기" },
@@ -14,6 +15,13 @@ const FILTERS = [
 ] as const;
 
 const COLOR_PRESETS = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#F439A0', '#A142F4', '#24C1E0'];
+
+type TodoFormState = {
+    title: string;
+    content: string;
+    date: string;
+    is_done: boolean;
+};
 
 const todayString = () => format(new Date(), "yyyy-MM-dd");
 const toNaiveDateTime = (value: Date) => format(value, "yyyy-MM-dd'T'HH:mm:ss");
@@ -34,6 +42,14 @@ function PlannerContent() {
     const [projectEnd, setProjectEnd] = useState(todayString());
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<PlanEvent | null>(null);
+    const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+    const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
+    const [todoForm, setTodoForm] = useState<TodoFormState>({
+        title: "",
+        content: "",
+        date: todayString(),
+        is_done: false,
+    });
 
     const selectedProjectId = useMemo(() => {
         const param = searchParams.get("project");
@@ -147,6 +163,44 @@ function PlannerContent() {
         }
     };
 
+    const updateTodoForm = <K extends keyof TodoFormState>(key: K, value: TodoFormState[K]) => {
+        setTodoForm(prev => ({ ...prev, [key]: value }));
+    };
+
+    const openTodoModal = (todo: Todo) => {
+        setEditingTodo(todo);
+        setTodoForm({
+            title: todo.title,
+            content: todo.content ?? "",
+            date: todo.date,
+            is_done: todo.is_done,
+        });
+        setIsTodoModalOpen(true);
+    };
+
+    const closeTodoModal = () => {
+        setIsTodoModalOpen(false);
+        setEditingTodo(null);
+    };
+
+    const handleTodoSave = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!editingTodo || !todoForm.title.trim()) return;
+        try {
+            const updated = await api.todos.update(editingTodo.id, {
+                title: todoForm.title.trim(),
+                content: todoForm.content,
+                date: todoForm.date,
+                is_done: todoForm.is_done,
+            });
+            setTodos(prev => prev.map(todo => (todo.id === updated.id ? updated : todo)));
+            setIsTodoModalOpen(false);
+            setEditingTodo(null);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     const calendarItems: CalendarItem[] = useMemo(() => {
         const projectColors = new Map(projects.map(project => [project.id, project.color]));
         const scopedEvents = selectedProjectId ? events.filter(event => event.project_id === selectedProjectId) : events;
@@ -166,7 +220,7 @@ function PlannerContent() {
             const startDate = new Date(todo.date);
             return {
                 id: `todo-${todo.id}`,
-                title: `할 일 · ${todo.title}`,
+                title: todo.title,
                 start: startDate.toISOString(),
                 end: addDays(startDate, 1).toISOString(),
                 color: "#f97316",
@@ -187,7 +241,8 @@ function PlannerContent() {
             setDeleteTarget(event);
             setIsDeleteModalOpen(true);
         } else {
-            alert("오늘 할 일은 Daily 페이지에서 관리해주세요.");
+            const todo = item.data as Todo;
+            openTodoModal(todo);
         }
     };
 
@@ -383,6 +438,60 @@ function PlannerContent() {
                             </div>
                         </div>
                     </div>
+                )}
+                {editingTodo && (
+                    <Modal
+                        isOpen={isTodoModalOpen}
+                        onClose={closeTodoModal}
+                        title="할 일 수정"
+                    >
+                        <form className="planner-form" onSubmit={handleTodoSave}>
+                            <label className="planner-field">
+                                <span>제목</span>
+                                <input
+                                    className="input"
+                                    value={todoForm.title}
+                                    onChange={(e) => updateTodoForm("title", e.target.value)}
+                                    placeholder="할 일 제목"
+                                />
+                            </label>
+                            <label className="planner-field">
+                                <span>설명</span>
+                                <textarea
+                                    className="planner-textarea"
+                                    rows={3}
+                                    value={todoForm.content}
+                                    onChange={(e) => updateTodoForm("content", e.target.value)}
+                                    placeholder="세부 내용을 입력하세요"
+                                />
+                            </label>
+                            <label className="planner-field">
+                                <span>날짜</span>
+                                <input
+                                    type="date"
+                                    className="input"
+                                    value={todoForm.date}
+                                    onChange={(e) => updateTodoForm("date", e.target.value)}
+                                />
+                            </label>
+                            <label className="todo-modal-checkbox">
+                                <input
+                                    type="checkbox"
+                                    checked={todoForm.is_done}
+                                    onChange={(e) => updateTodoForm("is_done", e.target.checked)}
+                                />
+                                <span>완료됨으로 표시</span>
+                            </label>
+                            <div className="planner-form-actions">
+                                <button type="button" className="ghost-pill" onClick={closeTodoModal}>
+                                    취소
+                                </button>
+                                <button type="submit" className="btn" disabled={!todoForm.title.trim()}>
+                                    변경 저장
+                                </button>
+                            </div>
+                        </form>
+                    </Modal>
                 )}
             </div>
         </div>
