@@ -393,6 +393,11 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  min-width: 0;
+}
+
+.planner-field.dual input[type="date"] {
+  width: 100%;
 }
 
 .planner-textarea {
@@ -424,15 +429,6 @@ h3 {
 .color-swatch.selected {
   transform: scale(1.1);
   border-color: #1f2937;
-}
-
-.color-picker-input {
-  width: 36px;
-  height: 28px;
-  border: none;
-  border-radius: 8px;
-  padding: 0;
-  background: transparent;
 }
 
 .planner-form-actions {

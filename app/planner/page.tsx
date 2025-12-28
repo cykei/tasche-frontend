@@ -14,7 +14,7 @@ const FILTERS = [
     { key: "todos", label: "오늘 할 일" },
 ] as const;
 
-const COLOR_PRESETS = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#F439A0', '#A142F4', '#24C1E0'];
+const COLOR_PRESETS = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#F439A0', '#A142F4', '#24C1E0', '#0EA5E9'];
 
 type TodoFormState = {
     title: string;
@@ -386,12 +386,6 @@ function PlannerContent() {
                                             style={{ backgroundColor: color }}
                                         />
                                     ))}
-                                    <input
-                                        type="color"
-                                        className="color-picker-input"
-                                        value={projectColor}
-                                        onChange={(e) => setProjectColor(e.target.value)}
-                                    />
                                 </div>
                             </div>
 
