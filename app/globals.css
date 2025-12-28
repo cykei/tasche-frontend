@@ -53,6 +53,8 @@ body {
   min-height: 100vh;
   font-size: 0.925rem;
   line-height: 1.5;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 /* Layout Utilities */
@@ -197,6 +199,8 @@ h3 {
 /* Sidebar Specifics */
 .sidebar-panel {
   width: 260px;
+  min-width: 260px;
+  flex: 0 0 260px;
   height: 100vh;
   border-right: 1px solid #edeef0;
   background: #fdfcfb;
