@@ -1,0 +1,68 @@
+/* FullCalendar Customization for Material 3 / Google Tasks Layout */
+
+.fc {
+    font-family: var(--font-sans);
+    --fc-border-color: #E2E8F0;
+    --fc-button-bg-color: transparent;
+    --fc-button-border-color: transparent;
+    --fc-button-text-color: #5F6368;
+    --fc-button-hover-bg-color: #F1F3F4;
+    --fc-button-hover-border-color: transparent;
+    --fc-button-active-bg-color: #E8EAED;
+    --fc-button-active-border-color: transparent;
+
+    --fc-event-border-color: transparent;
+    --fc-page-bg-color: #FFFFFF;
+    --fc-neutral-bg-color: #F8F9FA;
+
+    --fc-today-bg-color: #e8f0fe80;
+    /* Very light blue */
+}
+
+/* Header Toolbar */
+.fc .fc-toolbar-title {
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: #202124;
+}
+
+.fc .fc-button {
+    box-shadow: none;
+    font-weight: 500;
+    text-transform: capitalize;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+    background-color: var(--fc-button-active-bg-color);
+    color: #202124;
+}
+
+/* Table / Grid */
+.fc .fc-col-header-cell-cushion {
+    color: #5F6368;
+    font-weight: 500;
+    font-size: 0.8rem;
+    padding: 8px 0;
+    text-decoration: none;
+}
+
+.fc .fc-daygrid-day-number {
+    color: #3C4043;
+    font-size: 0.85rem;
+    padding: 8px;
+    text-decoration: none;
+}
+
+/* Events */
+.fc-event {
+    border-radius: 4px;
+    padding: 1px 2px;
+    font-size: 0.8rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: none;
+    cursor: pointer;
+}
