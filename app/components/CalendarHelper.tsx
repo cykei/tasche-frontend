@@ -20,9 +20,9 @@ export type CalendarItem = {
     start: string;
     end?: string;
     color: string;
-    type: "project" | "todo" | "todo-summary";
+    type: "project" | "todo" | "todo-summary" | "draft";
     allDay?: boolean;
-    data: PlanEvent | Todo | TodoSummaryData;
+    data?: PlanEvent | Todo | TodoSummaryData;
 };
 
 interface CalendarProps {
@@ -98,7 +98,7 @@ export default function CalendarHelper({ items, focusDate, onDateClick, onRangeS
 
     const renderEventContent = useCallback((arg: EventContentArg) => {
         const calendarItem = arg.event.extendedProps.calendarItem as CalendarItem | undefined;
-        if (!calendarItem || calendarItem.type === "project") {
+        if (!calendarItem || calendarItem.type === "project" || calendarItem.type === "draft") {
             return (
                 <div className="planner-project-event">
                     <span className="planner-project-title">{arg.event.title}</span>
@@ -134,6 +134,7 @@ export default function CalendarHelper({ items, focusDate, onDateClick, onRangeS
         const getRank = (event: EventApi) => {
             const calendarItem = event.extendedProps.calendarItem as CalendarItem | undefined;
             if (!calendarItem) return 0;
+            if (calendarItem.type === "draft") return -1;
             if (calendarItem.type === "project") return 0;
             if (calendarItem.type === "todo") return 1;
             if (calendarItem.type === "todo-summary") return 2;
@@ -161,7 +162,7 @@ export default function CalendarHelper({ items, focusDate, onDateClick, onRangeS
                 select={(arg) => onRangeSelect?.(arg.start, arg.end)}
                 eventClick={(arg) => {
                     const calendarItem = arg.event.extendedProps.calendarItem as CalendarItem | undefined;
-                    if (calendarItem) onEventClick?.(calendarItem);
+                    if (calendarItem && calendarItem.type !== "draft") onEventClick?.(calendarItem);
                 }}
                 eventContent={renderEventContent}
                 eventOrder={eventOrder}

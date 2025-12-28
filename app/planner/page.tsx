@@ -40,6 +40,7 @@ function PlannerContent() {
     const [projectColor, setProjectColor] = useState(COLOR_PRESETS[0]);
     const [projectStart, setProjectStart] = useState(todayString());
     const [projectEnd, setProjectEnd] = useState(todayString());
+    const [draftRange, setDraftRange] = useState<{ start: string, end: string } | null>(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<PlanEvent | null>(null);
     const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -100,6 +101,23 @@ function PlannerContent() {
         };
         void load();
     }, [fetchProjects, fetchEvents, fetchTodos]);
+
+    useEffect(() => {
+        if (!showProjectForm) {
+            setDraftRange(null);
+            return;
+        }
+        if (!projectStart || !projectEnd) {
+            setDraftRange(null);
+            return;
+        }
+        const startDate = new Date(`${projectStart}T00:00:00`);
+        const endDateExclusive = addDays(new Date(`${projectEnd}T00:00:00`), 1);
+        setDraftRange({
+            start: startDate.toISOString(),
+            end: endDateExclusive.toISOString(),
+        });
+    }, [projectStart, projectEnd, showProjectForm]);
 
     const resetProjectForm = () => {
         setProjectName("");
@@ -230,18 +248,32 @@ function PlannerContent() {
             };
         }) : [];
 
-        if (activeFilter === "projects" || selectedProjectId) return projectEntries;
-        if (activeFilter === "todos") return todoEntries;
-        return [...projectEntries, ...todoEntries];
-    }, [events, todos, projects, activeFilter, selectedProjectId]);
+        const draftEntries: CalendarItem[] = draftRange && showProjectForm ? [{
+            id: "draft-event",
+            title: projectName.trim() || "새 프로젝트",
+            start: draftRange.start,
+            end: draftRange.end,
+            color: projectColor,
+            type: "draft",
+            allDay: true,
+            data: undefined,
+        }] : [];
+
+        if (activeFilter === "projects" || selectedProjectId) return [...projectEntries, ...draftEntries];
+        if (activeFilter === "todos") return [...todoEntries, ...draftEntries];
+        return [...projectEntries, ...todoEntries, ...draftEntries];
+    }, [events, todos, projects, activeFilter, selectedProjectId, draftRange, showProjectForm, projectName, projectColor]);
 
     const handleCalendarEventClick = (item: CalendarItem) => {
+        if (item.type === "draft") return;
         if (item.type === "project") {
-            const event = item.data as PlanEvent;
+            const event = item.data as PlanEvent | undefined;
+            if (!event) return;
             setDeleteTarget(event);
             setIsDeleteModalOpen(true);
         } else if (item.type === "todo") {
-            const todo = item.data as Todo;
+            const todo = item.data as Todo | undefined;
+            if (!todo) return;
             openTodoModal(todo);
         } else {
             // summary events are informational only
