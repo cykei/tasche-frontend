@@ -501,6 +501,58 @@ h3 {
   font-size: 1.05rem;
 }
 
+.planner-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.planner-modal-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid #edeef0;
+  box-shadow: 0 30px 50px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.planner-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f1f2f4;
+}
+
+.planner-modal-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.planner-modal-close {
+  border: none;
+  background: #f3f4f6;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.planner-modal-body {
+  padding: 1rem 1.25rem 1.25rem;
+}
+
 .sidebar-brand {
   display: flex;
   align-items: center;
