@@ -17,14 +17,12 @@ import {
 } from "lucide-react";
 import { api, Todo } from "../lib/api";
 
-const QUICK_FILTERS = ["오늘", "우선순위", "라벨 없음", "최근 완료"];
-
 export default function DailyPage() {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [todos, setTodos] = useState<Todo[]>([]);
     const [isAdding, setIsAdding] = useState(false);
-    const [activeFilter, setActiveFilter] = useState(QUICK_FILTERS[0]);
     const [showCompleted, setShowCompleted] = useState(true);
+    const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
     // Create Form State
     const [title, setTitle] = useState("");
@@ -166,9 +164,14 @@ export default function DailyPage() {
         }
     };
 
-    const activeTodos = todos.filter((t) => !t.is_done);
-    const completedTodos = todos.filter((t) => t.is_done);
-    const totalTodos = todos.length;
+    const filteredTodos = useMemo(() => {
+        if (!selectedTag) return todos;
+        return todos.filter(todo => todo.tags?.includes(selectedTag));
+    }, [todos, selectedTag]);
+
+    const activeTodos = filteredTodos.filter((t) => !t.is_done);
+    const completedTodos = filteredTodos.filter((t) => t.is_done);
+    const totalTodos = filteredTodos.length;
     const progress = totalTodos ? Math.round((completedTodos.length / totalTodos) * 100) : 0;
 
     const heroDate = format(selectedDate, "PPP", { locale: ko });
@@ -183,6 +186,14 @@ export default function DailyPage() {
         ],
         [activeTodos.length, completedTodos.length, heroDate, heroWeekday],
     );
+
+    const tagOptions = useMemo(() => {
+        const set = new Set<string>();
+        todos.forEach(todo => {
+            todo.tags?.forEach(tag => set.add(tag));
+        });
+        return Array.from(set);
+    }, [todos]);
 
     const formatCreatedAt = (value?: string) => {
         if (!value) return "";
@@ -231,16 +242,27 @@ export default function DailyPage() {
                     </header>
 
                     <div className="quick-filter-row">
-                        {QUICK_FILTERS.map((filter) => (
-                            <button
-                                key={filter}
-                                className={`quick-filter ${activeFilter === filter ? "active" : ""}`}
-                                onClick={() => setActiveFilter(filter)}
-                                type="button"
-                            >
-                                {filter}
-                            </button>
-                        ))}
+                        <button
+                            className={`quick-filter ${selectedTag === null ? "active" : ""}`}
+                            onClick={() => setSelectedTag(null)}
+                            type="button"
+                        >
+                            전체
+                        </button>
+                        {tagOptions.length === 0 ? (
+                            <span className="tag-filter-empty">등록된 태그가 없습니다</span>
+                        ) : (
+                            tagOptions.map(tag => (
+                                <button
+                                    key={tag}
+                                    className={`quick-filter ${selectedTag === tag ? "active" : ""}`}
+                                    onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                                    type="button"
+                                >
+                                    #{tag}
+                                </button>
+                            ))
+                        )}
                     </div>
 
                     <section className="today-card">

@@ -941,6 +941,12 @@ h3 {
   color: #dc4c3e;
 }
 
+.tag-filter-empty {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  padding: 0.3rem 0.5rem;
+}
+
 .today-card {
   padding: 1.25rem 1.75rem 1.5rem;
 }
