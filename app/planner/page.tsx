@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
 import { Plus, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { api, PlanEvent, Project, Todo } from "../lib/api";
 import CalendarHelper, { CalendarItem } from "../components/CalendarHelper";
 
@@ -18,6 +19,7 @@ const todayString = () => format(new Date(), "yyyy-MM-dd");
 const toNaiveDateTime = (value: Date) => format(value, "yyyy-MM-dd'T'HH:mm:ss");
 
 export default function PlannerPage() {
+    const searchParams = useSearchParams();
     const [projects, setProjects] = useState<Project[]>([]);
     const [events, setEvents] = useState<PlanEvent[]>([]);
     const [todos, setTodos] = useState<Todo[]>([]);
@@ -30,6 +32,15 @@ export default function PlannerPage() {
     const [projectColor, setProjectColor] = useState(COLOR_PRESETS[0]);
     const [projectStart, setProjectStart] = useState(todayString());
     const [projectEnd, setProjectEnd] = useState(todayString());
+
+    const selectedProjectId = useMemo(() => {
+        const param = searchParams.get("project");
+        if (!param) return null;
+        const parsed = Number(param);
+        return Number.isNaN(parsed) ? null : parsed;
+    }, [searchParams]);
+
+    const selectedProject = projects.find((project) => project.id === selectedProjectId);
 
     const fetchProjects = useCallback(async () => {
         try {
@@ -117,6 +128,9 @@ export default function PlannerPage() {
                 note: projectNote,
             });
             await fetchEvents();
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new Event("projects:refresh"));
+            }
             setShowProjectForm(false);
             resetProjectForm();
         } catch (error) {
@@ -126,7 +140,8 @@ export default function PlannerPage() {
 
     const calendarItems: CalendarItem[] = useMemo(() => {
         const projectColors = new Map(projects.map(project => [project.id, project.color]));
-        const projectEntries: CalendarItem[] = events.map(event => ({
+        const scopedEvents = selectedProjectId ? events.filter(event => event.project_id === selectedProjectId) : events;
+        const projectEntries: CalendarItem[] = scopedEvents.map(event => ({
             id: `event-${event.id}`,
             title: event.title,
             start: event.start_at,
@@ -137,7 +152,8 @@ export default function PlannerPage() {
             data: event,
         }));
 
-        const todoEntries: CalendarItem[] = todos.map(todo => {
+        const includeTodos = !selectedProjectId && activeFilter !== "projects";
+        const todoEntries: CalendarItem[] = includeTodos ? todos.map(todo => {
             const startDate = new Date(todo.date);
             return {
                 id: `todo-${todo.id}`,
@@ -149,12 +165,12 @@ export default function PlannerPage() {
                 allDay: true,
                 data: todo,
             };
-        });
+        }) : [];
 
-        if (activeFilter === "projects") return projectEntries;
+        if (activeFilter === "projects" || selectedProjectId) return projectEntries;
         if (activeFilter === "todos") return todoEntries;
         return [...projectEntries, ...todoEntries];
-    }, [events, todos, projects, activeFilter]);
+    }, [events, todos, projects, activeFilter, selectedProjectId]);
 
     const handleCalendarEventClick = async (item: CalendarItem) => {
         if (item.type === "project") {
@@ -188,6 +204,11 @@ export default function PlannerPage() {
                                     {filter.label}
                                 </button>
                             ))}
+                            {selectedProject && (
+                                <span className="planner-selected-project">
+                                    {selectedProject.name} 프로젝트 보기
+                                </span>
+                            )}
                         </div>
                     </div>
 

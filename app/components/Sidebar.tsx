@@ -1,31 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Calendar, CalendarDays, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { Calendar, CalendarDays } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, Project } from "../lib/api";
-import Modal from "./Modal";
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const router = useRouter();
     const [projects, setProjects] = useState<Project[]>([]);
-    const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-    const [newProjectName, setNewProjectName] = useState("");
 
-    useEffect(() => {
-        api.projects.list().then(setProjects).catch(console.error);
+    const selectedProjectId = useMemo(() => {
+        const param = searchParams.get("project");
+        if (!param) return null;
+        const parsed = Number(param);
+        return Number.isNaN(parsed) ? null : parsed;
+    }, [searchParams]);
+
+    const fetchProjects = useCallback(async () => {
+        try {
+            const data = await api.projects.list();
+            setProjects(data);
+        } catch (error) {
+            console.error(error);
+        }
     }, []);
 
-    const handleCreateProject = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newProjectName) return;
-        try {
-            const p = await api.projects.create({ name: newProjectName, color: "#808080" });
-            setProjects([...projects, p]);
-            setIsProjectModalOpen(false);
-            setNewProjectName("");
-        } catch (e) { console.error(e); }
+    useEffect(() => {
+        const load = async () => {
+            await fetchProjects();
+        };
+        void load();
+
+        const handleRefresh = () => {
+            void fetchProjects();
+        };
+
+        window.addEventListener("projects:refresh", handleRefresh);
+        return () => window.removeEventListener("projects:refresh", handleRefresh);
+    }, [fetchProjects]);
+
+    const handleProjectClick = (projectId: number) => {
+        if (selectedProjectId === projectId) {
+            router.push("/planner");
+            return;
+        }
+        router.push(`/planner?project=${projectId}`);
     };
 
     return (
@@ -48,36 +70,23 @@ export default function Sidebar() {
 
             {/* Projects */}
             <div className="sidebar-section sidebar-scroll">
-                <div className="section-header">
-                    <p className="section-label">프로젝트</p>
-                    <button
-                        onClick={() => setIsProjectModalOpen(true)}
-                        className="ghost-pill compact"
-                        aria-label="프로젝트 추가"
-                    >
-                        <Plus size={14} />
-                    </button>
-                </div>
+                <p className="section-label">프로젝트</p>
                 <div className="project-list">
-                    {projects.map((p) => (
-                        <Link key={p.id} href={`/planner?project=${p.id}`} className="project-chip">
-                            <span className="project-dot" style={{ backgroundColor: p.color || "#9CA3AF" }} />
-                            <span className="project-name">{p.name}</span>
-                        </Link>
+                    {projects.map((project) => (
+                        <button
+                            key={project.id}
+                            type="button"
+                            onClick={() => handleProjectClick(project.id)}
+                            className={`project-chip ${selectedProjectId === project.id ? "active" : ""}`}
+                        >
+                            <span className="project-dot" style={{ backgroundColor: project.color || "#9CA3AF" }} />
+                            <span className="project-name">{project.name}</span>
+                        </button>
                     ))}
                     {projects.length === 0 && <div className="project-empty">아직 프로젝트가 없어요</div>}
                 </div>
             </div>
 
-            <Modal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} title="Add Project">
-                <form onSubmit={handleCreateProject} className="space-y-4">
-                    <input className="input" placeholder="Name" value={newProjectName} onChange={e => setNewProjectName(e.target.value)} autoFocus />
-                    <div className="flex justify-end gap-2">
-                        <button type="button" onClick={() => setIsProjectModalOpen(false)} className="btn-ghost">Cancel</button>
-                        <button type="submit" className="btn">Add</button>
-                    </div>
-                </form>
-            </Modal>
         </aside>
     );
 }
