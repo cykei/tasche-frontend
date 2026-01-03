@@ -1086,6 +1086,22 @@ h3 {
   font-size: 0.9rem;
   color: #6b7280;
   margin-top: 0.25rem;
+  display: grid;
+  gap: 0;
+  overflow-wrap: anywhere;
+}
+
+.todoist-desc-line {
+  display: block;
+  line-height: 1.45;
+}
+
+.todoist-desc-line + .todoist-desc-line {
+  margin-top: 0.45rem;
+}
+
+.todoist-desc-empty {
+  min-height: 1.45em;
 }
 
 .todoist-task-actions {

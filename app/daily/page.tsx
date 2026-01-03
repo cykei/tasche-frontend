@@ -273,6 +273,23 @@ export default function DailyPage() {
 
     const shiftDay = (amount: number) => setSelectedDate(addDays(selectedDate, amount));
 
+    const renderTodoContent = (content?: string) => {
+        if (!content) return null;
+        const lines = content.split(/\r?\n/);
+        return (
+            <div className="todoist-task-desc">
+                {lines.map((line, index) => (
+                    <span
+                        key={`${index}-${line}`}
+                        className={`todoist-desc-line${line ? "" : " todoist-desc-empty"}`}
+                    >
+                        {line}
+                    </span>
+                ))}
+            </div>
+        );
+    };
+
     return (
         <div className="today-page">
             <div className="today-grid">
@@ -445,7 +462,7 @@ export default function DailyPage() {
                                                         <div className="todoist-task-header">
                                                     <div>
                                                         <p className="todoist-task-title">{todo.title}</p>
-                                                        {todo.content && <p className="todoist-task-desc">{todo.content}</p>}
+                                                        {renderTodoContent(todo.content)}
                                                         {todo.tags && todo.tags.length > 0 && (
                                                             <div className="todoist-tag-list">
                                                                 {todo.tags.map((tag) => (
@@ -593,7 +610,7 @@ export default function DailyPage() {
                                                 </button>
                                                 <div className="completed-body">
                                                     <p>{todo.title}</p>
-                                                    {todo.content && <span>{todo.content}</span>}
+                                                    {renderTodoContent(todo.content)}
                                                     {todo.tags && todo.tags.length > 0 && (
                                                         <div className="todoist-tag-list">
                                                             {todo.tags.map((tag) => (
