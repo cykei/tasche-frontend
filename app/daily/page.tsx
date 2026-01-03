@@ -16,6 +16,7 @@ import {
     Trash2,
 } from "lucide-react";
 import { api, Todo } from "../lib/api";
+import Modal from "../components/Modal";
 
 export default function DailyPage() {
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -24,6 +25,8 @@ export default function DailyPage() {
     const [showCompleted, setShowCompleted] = useState(true);
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
     const [allTags, setAllTags] = useState<string[]>([]);
+    const [isTagDeleteModalOpen, setIsTagDeleteModalOpen] = useState(false);
+    const [tagToDelete, setTagToDelete] = useState<string | null>(null);
 
     // Create Form State
     const [title, setTitle] = useState("");
@@ -137,6 +140,30 @@ export default function DailyPage() {
             resetForm();
             setIsAdding(false);
             await Promise.all([fetchTodos(), fetchTags()]);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const openTagDeleteModal = (tag: string) => {
+        setTagToDelete(tag);
+        setIsTagDeleteModalOpen(true);
+    };
+
+    const closeTagDeleteModal = () => {
+        setIsTagDeleteModalOpen(false);
+        setTagToDelete(null);
+    };
+
+    const handleDeleteTag = async () => {
+        if (!tagToDelete) return;
+        try {
+            await api.tags.delete(tagToDelete);
+            if (selectedTag === tagToDelete) {
+                setSelectedTag(null);
+            }
+            await Promise.all([fetchTodos(), fetchTags()]);
+            closeTagDeleteModal();
         } catch (error) {
             console.error(error);
         }
@@ -342,7 +369,7 @@ export default function DailyPage() {
                                 <button
                                     key={tag}
                                     className={`quick-filter ${selectedTag === tag ? "active" : ""}`}
-                                    onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                                    onClick={() => openTagDeleteModal(tag)}
                                     type="button"
                                 >
                                     #{tag}
@@ -660,6 +687,23 @@ export default function DailyPage() {
                     </div>
                 </aside>
             </div>
+            <Modal
+                isOpen={isTagDeleteModalOpen}
+                onClose={closeTagDeleteModal}
+                title="태그 삭제"
+            >
+                <p className="planner-modal-desc">
+                    {tagToDelete ? `"${tagToDelete}" 태그를 삭제할까요?` : "태그를 삭제할까요?"}
+                </p>
+                <div className="planner-modal-actions">
+                    <button type="button" className="ghost-pill" onClick={closeTagDeleteModal}>
+                        취소
+                    </button>
+                    <button type="button" className="btn danger" onClick={handleDeleteTag}>
+                        삭제
+                    </button>
+                </div>
+            </Modal>
         </div>
     );
 }

@@ -119,5 +119,9 @@ export const api = {
             if (!res.ok) throw new Error("Failed to fetch tags");
             return res.json();
         },
+        delete: async (name: string): Promise<void> => {
+            const res = await fetch(`${API_URL}/tags/${encodeURIComponent(name)}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to delete tag");
+        },
     },
 };

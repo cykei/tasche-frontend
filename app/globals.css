@@ -158,6 +158,16 @@ h3 {
   filter: brightness(1.1);
 }
 
+.btn.danger {
+  background-color: #ef4444;
+  color: #fff;
+}
+
+.btn.danger:hover {
+  background-color: #dc2626;
+  filter: none;
+}
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -551,6 +561,19 @@ h3 {
 
 .planner-modal-body {
   padding: 1rem 1.25rem 1.25rem;
+}
+
+.planner-modal-desc {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.planner-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
 }
 
 .sidebar-brand {
