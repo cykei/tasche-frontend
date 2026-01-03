@@ -130,7 +130,7 @@ export default function CalendarHelper({ items, focusDate, onDateClick, onRangeS
         setCurrentView(arg.view.type);
     }, []);
 
-    const eventOrder = useCallback((a: EventApi, b: EventApi) => {
+    const eventOrder = useCallback((a: unknown, b: unknown) => {
         const getRank = (event: EventApi) => {
             const calendarItem = event.extendedProps.calendarItem as CalendarItem | undefined;
             if (!calendarItem) return 0;
@@ -140,9 +140,11 @@ export default function CalendarHelper({ items, focusDate, onDateClick, onRangeS
             if (calendarItem.type === "todo-summary") return 2;
             return 0;
         };
-        const diff = getRank(a) - getRank(b);
+        const eventA = a as EventApi;
+        const eventB = b as EventApi;
+        const diff = getRank(eventA) - getRank(eventB);
         if (diff !== 0) return diff;
-        return a.title.localeCompare(b.title);
+        return eventA.title.localeCompare(eventB.title);
     }, []);
 
     return (

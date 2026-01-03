@@ -23,18 +23,21 @@ export default function DailyPage() {
     const [isAdding, setIsAdding] = useState(false);
     const [showCompleted, setShowCompleted] = useState(true);
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
+    const [allTags, setAllTags] = useState<string[]>([]);
 
     // Create Form State
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [tagInput, setTagInput] = useState("");
     const [tags, setTags] = useState<string[]>([]);
+    const [showTagSuggestions, setShowTagSuggestions] = useState(false);
 
     const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
     const [editTitle, setEditTitle] = useState("");
     const [editContent, setEditContent] = useState("");
     const [editTags, setEditTags] = useState<string[]>([]);
     const [editTagInput, setEditTagInput] = useState("");
+    const [showEditTagSuggestions, setShowEditTagSuggestions] = useState(false);
 
     const [isLoading, setIsLoading] = useState(false);
 
@@ -51,9 +54,22 @@ export default function DailyPage() {
         }
     }, [selectedDate]);
 
+    const fetchTags = useCallback(async () => {
+        try {
+            const data = await api.tags.list();
+            setAllTags(data);
+        } catch (error) {
+            console.error(error);
+        }
+    }, []);
+
     useEffect(() => {
         fetchTodos();
     }, [fetchTodos]);
+
+    useEffect(() => {
+        fetchTags();
+    }, [fetchTags]);
 
     const resetForm = () => {
         setTitle("");
@@ -76,6 +92,14 @@ export default function DailyPage() {
 
     const removeTag = (t: string) => setTags(tags.filter((tag) => tag !== t));
 
+    const addSuggestedTag = (tag: string) => {
+        if (!tags.includes(tag)) {
+            setTags([...tags, tag]);
+        }
+        setTagInput("");
+        setShowTagSuggestions(false);
+    };
+
     const handleEditTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.nativeEvent.isComposing) return;
         if (e.key !== "Enter") return;
@@ -92,6 +116,14 @@ export default function DailyPage() {
         setEditTags(editTags.filter((t) => t !== tag));
     };
 
+    const addSuggestedEditTag = (tag: string) => {
+        if (!editTags.includes(tag)) {
+            setEditTags([...editTags, tag]);
+        }
+        setEditTagInput("");
+        setShowEditTagSuggestions(false);
+    };
+
     const handleAddTodo = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim()) return;
@@ -104,7 +136,7 @@ export default function DailyPage() {
             });
             resetForm();
             setIsAdding(false);
-            await fetchTodos();
+            await Promise.all([fetchTodos(), fetchTags()]);
         } catch (error) {
             console.error(error);
         }
@@ -158,6 +190,7 @@ export default function DailyPage() {
                 tags: editTags,
             });
             setTodos(prev => prev.map(todo => (todo.id === updated.id ? updated : todo)));
+            await fetchTags();
             cancelEditTodo();
         } catch (error) {
             console.error(error);
@@ -187,13 +220,25 @@ export default function DailyPage() {
         [activeTodos.length, completedTodos.length, heroDate, heroWeekday],
     );
 
-    const tagOptions = useMemo(() => {
-        const set = new Set<string>();
-        todos.forEach(todo => {
-            todo.tags?.forEach(tag => set.add(tag));
+    const tagOptions = useMemo(() => allTags, [allTags]);
+
+    const tagSuggestions = useMemo(() => {
+        const keyword = tagInput.trim().toLowerCase();
+        return tagOptions.filter((tag) => {
+            if (tags.includes(tag)) return false;
+            if (!keyword) return true;
+            return tag.toLowerCase().includes(keyword);
         });
-        return Array.from(set);
-    }, [todos]);
+    }, [tagInput, tagOptions, tags]);
+
+    const editTagSuggestions = useMemo(() => {
+        const keyword = editTagInput.trim().toLowerCase();
+        return tagOptions.filter((tag) => {
+            if (editTags.includes(tag)) return false;
+            if (!keyword) return true;
+            return tag.toLowerCase().includes(keyword);
+        });
+    }, [editTagInput, editTags, tagOptions]);
 
     const formatCreatedAt = (value?: string) => {
         if (!value) return "";
@@ -326,7 +371,26 @@ export default function DailyPage() {
                                                                     value={editTagInput}
                                                                     onChange={(e) => setEditTagInput(e.target.value)}
                                                                     onKeyDown={handleEditTagKeyDown}
+                                                                    onFocus={() => setShowEditTagSuggestions(true)}
+                                                                    onBlur={() => setShowEditTagSuggestions(false)}
                                                                 />
+                                                                {showEditTagSuggestions && editTagSuggestions.length > 0 && (
+                                                                    <div className="tag-suggest-list">
+                                                                        {editTagSuggestions.map((tag) => (
+                                                                            <button
+                                                                                key={tag}
+                                                                                type="button"
+                                                                                className="tag-suggest-item"
+                                                                                onMouseDown={(e) => {
+                                                                                    e.preventDefault();
+                                                                                    addSuggestedEditTag(tag);
+                                                                                }}
+                                                                            >
+                                                                                #{tag}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -447,7 +511,26 @@ export default function DailyPage() {
                                                 value={tagInput}
                                                 onChange={(e) => setTagInput(e.target.value)}
                                                 onKeyDown={handleAddTag}
+                                                onFocus={() => setShowTagSuggestions(true)}
+                                                onBlur={() => setShowTagSuggestions(false)}
                                             />
+                                            {showTagSuggestions && tagSuggestions.length > 0 && (
+                                                <div className="tag-suggest-list">
+                                                    {tagSuggestions.map((tag) => (
+                                                        <button
+                                                            key={tag}
+                                                            type="button"
+                                                            className="tag-suggest-item"
+                                                            onMouseDown={(e) => {
+                                                                e.preventDefault();
+                                                                addSuggestedTag(tag);
+                                                            }}
+                                                        >
+                                                            #{tag}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

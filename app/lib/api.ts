@@ -112,5 +112,12 @@ export const api = {
         delete: async (id: number) => {
             await fetch(`${API_URL}/events/${id}`, { method: "DELETE" });
         }
-    }
+    },
+    tags: {
+        list: async (): Promise<string[]> => {
+            const res = await fetch(`${API_URL}/tags`);
+            if (!res.ok) throw new Error("Failed to fetch tags");
+            return res.json();
+        },
+    },
 };
