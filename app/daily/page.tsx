@@ -5,10 +5,10 @@ import { addDays, format } from "date-fns";
 import { ko } from "date-fns/locale";
 import {
     Calendar,
+    CalendarPlus,
     Check,
     ChevronLeft,
     ChevronRight,
-    Clock,
     Filter,
     MoreHorizontal,
     PlusCircle,
@@ -242,9 +242,33 @@ export default function DailyPage() {
 
     const formatCreatedAt = (value?: string) => {
         if (!value) return "";
-        const date = new Date(value);
+        const hasTimezone = value.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(value);
+        const parseUtc = () => {
+            if (hasTimezone) return new Date(value);
+            const [datePart, timePartRaw] = value.replace("T", " ").split(" ");
+            if (!datePart || !timePartRaw) return new Date(value);
+            const [year, month, day] = datePart.split("-").map(Number);
+            const timePart = timePartRaw.split(".")[0];
+            const [hour, minute, second = "0"] = timePart.split(":");
+            return new Date(Date.UTC(
+                year,
+                (month ?? 1) - 1,
+                day ?? 1,
+                Number(hour ?? 0),
+                Number(minute ?? 0),
+                Number(second ?? 0),
+            ));
+        };
+        const date = parseUtc();
         if (isNaN(date.getTime())) return "";
-        return format(date, "a h:mm", { locale: ko });
+        return new Intl.DateTimeFormat("ko-KR", {
+            timeZone: "Asia/Seoul",
+            month: "long",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+        }).format(date);
     };
 
     const shiftDay = (amount: number) => setSelectedDate(addDays(selectedDate, amount));
@@ -452,13 +476,9 @@ export default function DailyPage() {
                                                             </div>
                                                         </div>
                                                         <div className="todoist-task-meta">
-                                                            <span className="todoist-due">
-                                                                <Calendar size={12} />
-                                                                {dueLabel}
-                                                            </span>
                                                             {createdLabel && (
-                                                                <span className="todoist-created">
-                                                                    <Clock size={12} />
+                                                                    <span className="todoist-created">
+                                                                    <CalendarPlus size={12} />
                                                                     {createdLabel}
                                                                 </span>
                                                             )}
