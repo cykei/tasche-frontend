@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
+import { ko } from "date-fns/locale";
 import { Plus, Trash2, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { api, PlanEvent, Project, Todo } from "../lib/api";
@@ -31,6 +32,8 @@ function PlannerContent() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [events, setEvents] = useState<PlanEvent[]>([]);
     const [todos, setTodos] = useState<Todo[]>([]);
+    const [isDateDetailOpen, setIsDateDetailOpen] = useState(false);
+    const [detailDate, setDetailDate] = useState<Date | null>(null);
 
     const [activeFilter, setActiveFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
     const [showProjectForm, setShowProjectForm] = useState(false);
@@ -129,6 +132,7 @@ function PlannerContent() {
     };
 
     const handleRangeSelect = (start: Date, end: Date) => {
+        if (end <= addDays(start, 1)) return;
         const startStr = format(start, "yyyy-MM-dd");
         const inclusiveEnd = addDays(end, -1);
         const safeEnd = inclusiveEnd < start ? start : inclusiveEnd;
@@ -136,6 +140,52 @@ function PlannerContent() {
         setProjectStart(startStr);
         setProjectEnd(endStr);
         setShowProjectForm(true);
+    };
+
+    const openDateDetail = (date: Date) => {
+        setDetailDate(date);
+        setIsDateDetailOpen(true);
+    };
+
+    const closeDateDetail = () => {
+        setIsDateDetailOpen(false);
+        setDetailDate(null);
+    };
+
+    const extractDateKey = (value: string) => value.split("T")[0].split(" ")[0];
+
+    const detailDateKey = useMemo(() => {
+        if (!detailDate) return null;
+        return format(detailDate, "yyyy-MM-dd");
+    }, [detailDate]);
+
+    const detailTodos = useMemo(() => {
+        if (!detailDateKey) return [];
+        return todos.filter(todo => todo.date === detailDateKey);
+    }, [todos, detailDateKey]);
+
+    const detailEvents = useMemo(() => {
+        if (!detailDateKey) return [];
+        return events.filter(event => {
+            const startKey = extractDateKey(event.start_at);
+            const endKey = extractDateKey(event.end_at);
+            return detailDateKey >= startKey && detailDateKey < endKey;
+        });
+    }, [events, detailDateKey]);
+
+    const detailDateLabel = useMemo(() => {
+        if (!detailDate) return "";
+        return format(detailDate, "PPP", { locale: ko });
+    }, [detailDate]);
+
+    const formatDateRange = (startAt: string, endAt: string) => {
+        const startKey = extractDateKey(startAt);
+        const endKey = extractDateKey(endAt);
+        const startDate = new Date(`${startKey}T00:00:00`);
+        const endDate = addDays(new Date(`${endKey}T00:00:00`), -1);
+        const startLabel = format(startDate, "M월 d일", { locale: ko });
+        const endLabel = format(endDate, "M월 d일", { locale: ko });
+        return startLabel === endLabel ? startLabel : `${startLabel} ~ ${endLabel}`;
     };
 
     const handleManualStartChange = (value: string) => {
@@ -333,6 +383,7 @@ function PlannerContent() {
                             focusDate={focusDate}
                             onRangeSelect={handleRangeSelect}
                             onEventClick={handleCalendarEventClick}
+                            onDateClick={openDateDetail}
                         />
                     </div>
 
@@ -521,6 +572,44 @@ function PlannerContent() {
                         </form>
                     </Modal>
                 )}
+                <Modal
+                    isOpen={isDateDetailOpen}
+                    onClose={closeDateDetail}
+                    title={detailDateLabel || "날짜 상세"}
+                >
+                    <div className="planner-date-detail">
+                        <div className="planner-date-section">
+                            <h4>프로젝트</h4>
+                            {detailEvents.length === 0 ? (
+                                <p className="planner-date-empty">등록된 프로젝트가 없습니다.</p>
+                            ) : (
+                                <ul className="planner-date-list">
+                                    {detailEvents.map(event => (
+                                        <li key={event.id} className="planner-date-item">
+                                            <strong>{event.title}</strong>
+                                            <span>{formatDateRange(event.start_at, event.end_at)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                        <div className="planner-date-section">
+                            <h4>할 일</h4>
+                            {detailTodos.length === 0 ? (
+                                <p className="planner-date-empty">등록된 할 일이 없습니다.</p>
+                            ) : (
+                                <ul className="planner-date-list">
+                                    {detailTodos.map(todo => (
+                                        <li key={todo.id} className="planner-date-item">
+                                            <strong>{todo.title}</strong>
+                                            {todo.content && <span>{todo.content}</span>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
+                </Modal>
             </div>
         </div>
     );

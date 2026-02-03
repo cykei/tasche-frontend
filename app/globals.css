@@ -576,6 +576,47 @@ h3 {
   gap: 0.6rem;
 }
 
+.planner-date-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.planner-date-section h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.planner-date-empty {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+.planner-date-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.planner-date-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid #eceef1;
+  font-size: 0.85rem;
+}
+
+.planner-date-item span {
+  color: #6b7280;
+}
+
 .sidebar-brand {
   display: flex;
   align-items: center;
