@@ -11,6 +11,22 @@ export interface Todo {
     tags?: string[];
 }
 
+type TagLike = string | { id: number; name: string };
+
+type TodoResponse = Omit<Todo, "tags"> & { tags?: TagLike[] };
+
+const normalizeTags = (tags?: TagLike[] | null): string[] => {
+    if (!Array.isArray(tags)) return [];
+    return tags
+        .map((tag) => (typeof tag === "string" ? tag : tag?.name ?? ""))
+        .filter(Boolean);
+};
+
+const normalizeTodo = (todo: TodoResponse): Todo => ({
+    ...todo,
+    tags: normalizeTags(todo.tags),
+});
+
 export interface CreateTodo {
     title: string;
     content: string;
@@ -49,7 +65,9 @@ export const api = {
             const query = date ? `?date=${date}` : "";
             const res = await fetch(`${API_URL}/todos${query}`);
             if (!res.ok) throw new Error("Failed to fetch todos");
-            return res.json();
+            const data = await res.json();
+            if (!Array.isArray(data)) return [];
+            return data.map(normalizeTodo);
         },
         create: async (data: CreateTodo): Promise<Todo> => {
             const res = await fetch(`${API_URL}/todos`, {
@@ -58,7 +76,7 @@ export const api = {
                 body: JSON.stringify(data),
             });
             if (!res.ok) throw new Error("Failed to create todo");
-            return res.json();
+            return normalizeTodo(await res.json());
         },
         update: async (id: number, data: UpdateTodo): Promise<Todo> => {
             const res = await fetch(`${API_URL}/todos/${id}`, {
@@ -67,7 +85,7 @@ export const api = {
                 body: JSON.stringify(data),
             });
             if (!res.ok) throw new Error("Failed to update todo");
-            return res.json();
+            return normalizeTodo(await res.json());
         },
         delete: async (id: number): Promise<void> => {
             const res = await fetch(`${API_URL}/todos/${id}`, { method: "DELETE" });
@@ -117,7 +135,8 @@ export const api = {
         list: async (): Promise<string[]> => {
             const res = await fetch(`${API_URL}/tags`);
             if (!res.ok) throw new Error("Failed to fetch tags");
-            return res.json();
+            const data = await res.json();
+            return normalizeTags(data);
         },
         delete: async (name: string): Promise<void> => {
             const res = await fetch(`${API_URL}/tags/${encodeURIComponent(name)}`, { method: "DELETE" });
