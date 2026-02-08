@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tasche Frontend
 
-## Getting Started
+Tasche 프로젝트의 Frontend 프로제트 입니다.
 
-First, run the development server:
+## About Tasche
+
+**Tasche**는 독일어로 *주머니*를 뜻합니다.
+주머니는 해야 할 일과 중요한 계획을 잠시 담아두었다가 필요할 때 꺼내 쓰는 공간입니다.
+
+Tasche는 **할 일(Task)** 과 **일정(Schedule)** 을 하루라는 시간 속에 함께
+담아두는 개인용 플래너입니다.
+
+오늘의 할 일을 정리하고, 오늘 포함된 일정을 한눈에 보고, 하루를 차분하게 계획할 수 있도록 돕습니다.
+
+> **Tasche | 하루계획**
+>
+> 하루를 담아두는 작은 공간
+
+## 🎯 주요 기능
+
+### ✅ 오늘의 할일
+
+- 날짜별 할일 작성 및 관리
+- 완료 체크
+- 태그를 통한 간단한 분류
+
+### 📅 일정 / 계획 관리
+
+- 월간 캘린더 뷰
+- 프로젝트 단위의 계획 관리 (시작일 ~ 종료일)
+- 일정 <-> 오늘의 할일로 추가 가능 (예정)
+
+## 화면 구성
+
+- **홈**
+  오늘의 할일과 일정을 한눈에 확인
+- **캘린더**
+  월/주 단위 일정 관리
+
+## 기술 스택
+
+- Next.js, React, TypeScript
+- 캘린더: FullCalendar
+- 날짜 처리: date-fns
+
+## 실행
 
 ```bash
+cd frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 `http://localhost:3000`으로 접속합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 개발 메모
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 엔트리 페이지는 `app/page.tsx`에서 시작합니다.
+- 환경변수는 필요 시 `.env.local`에 추가합니다(현재 필수 없음).
