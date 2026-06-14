@@ -39,6 +39,7 @@ Tasche는 **할 일(Task)** 과 **일정(Schedule)** 을 하루라는 시간 속
 
 ## 기술 스택
 
+- node version 22
 - Next.js, React, TypeScript
 - 캘린더: FullCalendar
 - 날짜 처리: date-fns
@@ -46,7 +47,6 @@ Tasche는 **할 일(Task)** 과 **일정(Schedule)** 을 하루라는 시간 속
 ## 실행
 
 ```bash
-cd frontend
 npm install
 npm run dev
 ```
